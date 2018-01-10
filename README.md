@@ -12,5 +12,9 @@ From root project directory run
 
 ```bash
 sh setup
+
+export JIRA_USER=""
+export JIRA_PASS=""
+
 sh run
 ```

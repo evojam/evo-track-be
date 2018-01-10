@@ -1,13 +1,16 @@
 from flask import Flask
 from flask import Response
+from flask import request
 
+import os
 import requests
 
 app = Flask(__name__)
 
-login = ''
-password = ''
-credentials=(login, password)
+login = os.environ['JIRA_USER']
+passw = os.environ['JIRA_PASS']
+credentials=(login, passw)
+
 api='https://evojam.atlassian.net/rest/api/latest'
 timesheets_api='https://evojam.atlassian.net/rest/tempo-timesheets/3'
 
@@ -19,14 +22,6 @@ def hello():
 def health():
     return Response("{'Status':'working'}", status=200, mimetype='application/json')
 
-@app.route("/test")
-def test():
-    response = requests.get(
-        api + '/issue/EIP-78', 
-        auth=(login, password)
-    )
-    return response.text, response.status_code
-
 @app.route("/worklogs")
 def worklogs():
     response = requests.get(
@@ -34,3 +29,8 @@ def worklogs():
         auth=credentials
     )
     return response.text, response.status_code
+
+@app.route("/api/dashboard")
+def dashboard():
+    date_from, date_to = requests.args['from'], requests.args['to']
+    return '', 200
