@@ -41,9 +41,6 @@ class Worklog:
         self.minutes = minutes
         self.date = date
 
-    def prnt(self):
-        print(f'({self.name} {self.minutes} {self.date})')
-
 def parse_worklog(record):
     name = record['author']['displayName']
     minutes = int(int(record['billedSeconds'])/60)
@@ -55,7 +52,7 @@ def dashboard():
     date_from = reversed_date(request.args['from'])
     date_to = reversed_date(request.args['to'])
 
-    url = f'{timesheets_api}/worklogs/?dateFrom={date_from}&dateTo={date_to}'
+    url = timesheets_api + '/worklogs/?dateFrom=' + date_from + '&dateTo=' + date_to
 
     response = requests.get(url, auth=credentials)
 
