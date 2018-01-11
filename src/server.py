@@ -75,11 +75,11 @@ def dashboard():
 
     for name, data in d.items():
         summary = sum([x['minutes'] for x in data])
-        result.append(json.dumps({
+        result.append({
             'name': name,
             'overall': summary,
             'data': data
-        }))
+        })
 
-    return Response(result, 200, mimetype='application/json')
+    return Response(json.dumps(result), 200, mimetype='application/json')
 
