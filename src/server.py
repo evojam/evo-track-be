@@ -44,17 +44,19 @@ def worklogs():
 
 
 class Worklog:
-    def __init__(self, name, minutes, date):
+    def __init__(self, name, minutes, date, key):
         self.name = name
         self.minutes = minutes
         self.date = date
+        self.key = key
 
 
 def parse_worklog(record):
     name = record['author']['displayName']
+    key = record['issue']['key']
     minutes = int(int(record['billedSeconds'])/60)
-    date = reversed_date(record['dateCreated'][0:10])
-    return Worklog(name, minutes, date)
+    date = reversed_date(record['dateStarted'][0:10])
+    return Worklog(name, minutes, date, key)
 
 
 @app.route("/api/dashboard")
@@ -65,6 +67,7 @@ def dashboard():
     url = timesheets_api + '/worklogs/?dateFrom=' + date_from + '&dateTo=' + date_to
 
     response = requests.get(url, auth=(login, passw))
+    print(response.json())
     worklogs = [parse_worklog(record) for record in response.json()]
 
     names = list(set([w.name for w in worklogs]))
@@ -81,7 +84,12 @@ def dashboard():
 
     for name in names:
         for day in date_range:
-            d[name].append({'date': day.strftime('%d-%m-%Y'), 'minutes': 0, 'id': randint(0, 999999999)})
+            d[name].append({
+                'date': day.strftime('%d-%m-%Y'), 
+                'minutes': 0, 
+                'id': randint(0, 999999999),
+                'issues': []
+            })
 
         # d[w.name].append({'date': w.date, 'minutes': w.minutes})  
 
@@ -89,6 +97,7 @@ def dashboard():
         for item in d[w.name]:
             if w.date == item['date']:
                 item['minutes'] = item['minutes'] + w.minutes
+                item['issues'].append({'key': w.key, 'time': w.minutes})
 
     result = list()
 
