@@ -7,6 +7,9 @@ import os
 import requests
 import json
 
+from datetime import date, timedelta, datetime
+from random import randint
+
 app = Flask(__name__)
 
 login = os.environ['JIRA_USER']
@@ -68,18 +71,32 @@ def dashboard():
     
     d = dict([(name, list()) for name in names])
 
+    start_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+    end_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+    delta = end_date - start_date
+    date_range = []
+
+    for i in range(delta.days + 1):
+        date_range.append(start_date + timedelta(days=i))
+
+    for name in names:
+        for day in date_range:
+            d[name].append({'date': day.strftime('%d-%m-%Y'), 'minutes': 0, 'id': randint(0, 999999999)})
+
+        # d[w.name].append({'date': w.date, 'minutes': w.minutes})  
+
     for w in worklogs:
-        d[w.name].append({'date': w.date, 'minutes': w.minutes})
+        for item in d[w.name]:
+            if w.date == item['date']:
+                item['minutes'] = item['minutes'] + w.minutes
 
     result = list()
 
     for name, data in d.items():
-        summary = sum([x['minutes'] for x in data])
         result.append({
             'name': name,
-            'overall': summary,
-            'data': data
-        })
+            'data': data,
+	})
 
     return Response(json.dumps(result), 200, mimetype='application/json')
 
