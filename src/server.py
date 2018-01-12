@@ -44,11 +44,12 @@ def worklogs():
 
 
 class Worklog:
-    def __init__(self, name, minutes, date, key):
+    def __init__(self, name, minutes, date, key, avatar):
         self.name = name
         self.minutes = minutes
         self.date = date
         self.key = key
+        self.avatar = avatar
 
 
 def parse_worklog(record):
@@ -56,7 +57,8 @@ def parse_worklog(record):
     key = record['issue']['key']
     minutes = int(int(record['billedSeconds'])/60)
     date = reversed_date(record['dateStarted'][0:10])
-    return Worklog(name, minutes, date, key)
+    avatar = record['author']['avatar']
+    return Worklog(name, minutes, date, key, avatar)
 
 
 @app.route("/api/dashboard")
@@ -67,11 +69,17 @@ def dashboard():
     url = timesheets_api + '/worklogs/?dateFrom=' + date_from + '&dateTo=' + date_to
 
     response = requests.get(url, auth=(login, passw))
-    print(response.json())
+
     worklogs = [parse_worklog(record) for record in response.json()]
 
     names = list(set([w.name for w in worklogs]))
-    
+
+    avatars = dict()
+
+    for w in worklogs:
+        if w.name not in avatars:
+            avatars[w.name] = w.avatar
+
     d = dict([(name, list()) for name in names])
 
     start_date = datetime.strptime(date_from, '%Y-%m-%d').date()
@@ -104,8 +112,9 @@ def dashboard():
     for name, data in d.items():
         result.append({
             'name': name,
+            'avatar': avatars[name],
             'data': data,
-	})
+	    })
 
     return Response(json.dumps(result), 200, mimetype='application/json')
 
