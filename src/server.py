@@ -17,6 +17,11 @@ passw = os.environ['JIRA_PASS']
 api = 'https://evojam.atlassian.net/rest/api/latest'
 timesheets_api = 'https://evojam.atlassian.net/rest/tempo-timesheets/3'
 
+jiras = {
+    "evojam": (os.environ['JIRA_USER'], os.environ['JIRA_PASS']),
+    "pkupidura": (os.environ['JIRA_USER_PKUPIDURA'], os.environ['JIRA_PASS_PKUPIDURA'])
+}
+
 
 def reversed_date(date):
     splitted = date.split('-')
@@ -66,11 +71,16 @@ def dashboard():
     date_from = reversed_date(request.args['from'])
     date_to = reversed_date(request.args['to'])
 
-    url = timesheets_api + '/worklogs/?dateFrom=' + date_from + '&dateTo=' + date_to
+    worklogs = list()
 
-    response = requests.get(url, auth=(login, passw))
+    for jiraName, credentials in jiras.items():
+        jiraUrl = 'https://' + jiraName + '.atlassian.net/rest/tempo-timesheets/3' + \
+                  '/worklogs/?dateFrom=' + date_from + '&dateTo=' + date_to
 
-    worklogs = [parse_worklog(record) for record in response.json()]
+        response = requests.get(jiraUrl, auth=credentials)
+
+        ws = [parse_worklog(record) for record in response.json()]
+        worklogs.extend(ws)
 
     names = list(set([w.name for w in worklogs]))
 
@@ -93,13 +103,13 @@ def dashboard():
     for name in names:
         for day in date_range:
             d[name].append({
-                'date': day.strftime('%d-%m-%Y'), 
-                'minutes': 0, 
+                'date': day.strftime('%d-%m-%Y'),
+                'minutes': 0,
                 'id': randint(0, 999999999),
                 'issues': []
             })
 
-        # d[w.name].append({'date': w.date, 'minutes': w.minutes})  
+        # d[w.name].append({'date': w.date, 'minutes': w.minutes})
 
     for w in worklogs:
         for item in d[w.name]:
