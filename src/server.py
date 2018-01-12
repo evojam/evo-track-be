@@ -49,21 +49,22 @@ def worklogs():
 
 
 class Worklog:
-    def __init__(self, name, minutes, date, key, avatar):
+    def __init__(self, name, minutes, date, key, avatar, jira):
         self.name = name
         self.minutes = minutes
         self.date = date
         self.key = key
         self.avatar = avatar
+        self.jira = jira
 
 
-def parse_worklog(record):
+def parse_worklog(record, jira):
     name = record['author']['displayName']
     key = record['issue']['key']
     minutes = int(int(record['billedSeconds'])/60)
     date = reversed_date(record['dateStarted'][0:10])
     avatar = record['author']['avatar']
-    return Worklog(name, minutes, date, key, avatar)
+    return Worklog(name, minutes, date, key, avatar, jira)
 
 
 @app.route("/api/dashboard")
@@ -79,7 +80,7 @@ def dashboard():
 
         response = requests.get(jiraUrl, auth=credentials)
 
-        ws = [parse_worklog(record) for record in response.json()]
+        ws = [parse_worklog(record, jiraName) for record in response.json()]
         worklogs.extend(ws)
 
     names = list(set([w.name for w in worklogs]))
@@ -115,7 +116,7 @@ def dashboard():
         for item in d[w.name]:
             if w.date == item['date']:
                 item['minutes'] = item['minutes'] + w.minutes
-                item['issues'].append({'key': w.key, 'time': w.minutes})
+                item['issues'].append({'key': w.key, 'time': w.minutes, 'jira': w.jira})
 
     result = list()
 
