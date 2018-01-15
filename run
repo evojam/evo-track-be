@@ -1,3 +1,9 @@
 #!/bin/bash
 
+export JIRA_USER_EVOJAM=""
+export JIRA_TOKEN_EVOJAM=""
+
+export JIRA_USER_SWINGDEV=""
+export JIRA_TOKEN_SWINGDEV=""
+
 FLASK_APP=src/server.py flask run

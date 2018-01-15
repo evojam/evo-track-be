@@ -13,18 +13,18 @@ from flask import request
 app = Flask(__name__)
 
 
+jiras = [
+    "evojam",
+    "swingdev"
+]
+
+
 def creds_from_env(jira_name):
     uppercase = jira_name.upper()
     user_key = 'JIRA_USER_' + uppercase
     token_key = 'JIRA_TOKEN_' + uppercase
     return os.environ[user_key], os.environ[token_key]
 
-
-jiras = [
-    # "evojam",
-    "pkupidura",
-    "swingdev"
-]
 
 jiras_with_creds = dict([(j, creds_from_env(j)) for j in jiras])
 
