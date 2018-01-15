@@ -12,14 +12,9 @@ from random import randint
 
 app = Flask(__name__)
 
-login = os.environ['JIRA_USER']
-passw = os.environ['JIRA_PASS']
-api = 'https://evojam.atlassian.net/rest/api/latest'
-timesheets_api = 'https://evojam.atlassian.net/rest/tempo-timesheets/3'
-
 jiras = {
-    "evojam": (os.environ['JIRA_USER'], os.environ['JIRA_PASS']),
-    "pkupidura": (os.environ['JIRA_USER_PKUPIDURA'], os.environ['JIRA_PASS_PKUPIDURA'])
+    "swingdev": (os.environ['JIRA_USER_SWINGDEV'], os.environ['JIRA_TOKEN_SWINGDEV']),
+    "pkupidura": (os.environ['JIRA_USER_PKUPIDURA'], os.environ['JIRA_TOKEN_PKUPIDURA'])
 }
 
 
@@ -37,15 +32,6 @@ def hello():
 @app.route("/health")
 def health():
     return Response("{'Status':'working'}", status=200, mimetype='application/json')
-
-
-@app.route("/worklogs")
-def worklogs():
-    response = requests.get(
-        timesheets_api + '/worklogs/',
-        auth=credentials
-    )
-    return response.text, response.status_code
 
 
 class Worklog:
@@ -75,11 +61,15 @@ def dashboard():
     worklogs = list()
 
     for jiraName, credentials in jiras.items():
-        jiraUrl = 'https://' + jiraName + '.atlassian.net/rest/tempo-timesheets/3' + \
-                  '/worklogs/?dateFrom=' + date_from + '&dateTo=' + date_to
-
-        response = requests.get(jiraUrl, auth=credentials)
-
+        jira_url = 'https://' + jiraName + '.atlassian.net/rest/tempo-timesheets/3' + \
+                  '/worklogs?dateFrom=' + date_from + '&dateTo=' + date_to
+        print(jira_url)
+        response = requests.get(
+            jira_url,
+            auth=credentials,
+            headers={'Accept': 'application/json'}
+        )
+        print(response.json())
         ws = [parse_worklog(record, jiraName) for record in response.json()]
         worklogs.extend(ws)
 
