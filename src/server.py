@@ -1,37 +1,38 @@
-import flask as flask
+#!/usr/bin/env python3
+
+import json
+import os
+from datetime import timedelta, datetime
+from random import randint
+
+import requests
 from flask import Flask
 from flask import Response
 from flask import request
 
-import os
-import requests
-import json
-
-from datetime import date, timedelta, datetime
-from random import randint
-
 app = Flask(__name__)
 
-jiras = {
-    "swingdev": (os.environ['JIRA_USER_SWINGDEV'], os.environ['JIRA_TOKEN_SWINGDEV']),
-    "pkupidura": (os.environ['JIRA_USER_PKUPIDURA'], os.environ['JIRA_TOKEN_PKUPIDURA'])
-}
+
+def creds_from_env(jira_name):
+    uppercase = jira_name.upper()
+    user_key = 'JIRA_USER_' + uppercase
+    token_key = 'JIRA_TOKEN_' + uppercase
+    return os.environ[user_key], os.environ[token_key]
+
+
+jiras = [
+    # "evojam",
+    "pkupidura",
+    "swingdev"
+]
+
+jiras_with_creds = dict([(j, creds_from_env(j)) for j in jiras])
 
 
 def reversed_date(date):
     splitted = date.split('-')
     splitted.reverse()
     return '-'.join(splitted)
-
-
-@app.route("/api")
-def hello():
-    return "Hello World!"
-
-
-@app.route("/health")
-def health():
-    return Response("{'Status':'working'}", status=200, mimetype='application/json')
 
 
 class Worklog:
@@ -47,7 +48,7 @@ class Worklog:
 def parse_worklog(record, jira):
     name = record['author']['displayName']
     key = record['issue']['key']
-    minutes = int(int(record['billedSeconds'])/60)
+    minutes = int(int(record['billedSeconds']) / 60)
     date = reversed_date(record['dateStarted'][0:10])
     avatar = record['author']['avatar']
     return Worklog(name, minutes, date, key, avatar, jira)
@@ -60,17 +61,17 @@ def dashboard():
 
     worklogs = list()
 
-    for jiraName, credentials in jiras.items():
-        jira_url = 'https://' + jiraName + '.atlassian.net/rest/tempo-timesheets/3' + \
-                  '/worklogs?dateFrom=' + date_from + '&dateTo=' + date_to
-        print(jira_url)
+    for jira, credentials in jiras_with_creds.items():
+        url = 'https://' + jira + '.atlassian.net/rest/tempo-timesheets/3' + \
+              '/worklogs?dateFrom=' + date_from + '&dateTo=' + date_to
+
         response = requests.get(
-            jira_url,
+            url,
             auth=credentials,
             headers={'Accept': 'application/json'}
         )
-        print(response.json())
-        ws = [parse_worklog(record, jiraName) for record in response.json()]
+
+        ws = [parse_worklog(record, jira) for record in response.json()]
         worklogs.extend(ws)
 
     names = list(set([w.name for w in worklogs]))
@@ -100,8 +101,6 @@ def dashboard():
                 'issues': []
             })
 
-        # d[w.name].append({'date': w.date, 'minutes': w.minutes})
-
     for w in worklogs:
         for item in d[w.name]:
             if w.date == item['date']:
@@ -115,7 +114,16 @@ def dashboard():
             'name': name,
             'avatar': avatars[name],
             'data': data,
-	    })
+        })
 
     return Response(json.dumps(result), 200, mimetype='application/json')
 
+
+@app.route("/api")
+def hello():
+    return "Hello World!"
+
+
+@app.route("/health")
+def health():
+    return Response("{'Status':'working'}", status=200, mimetype='application/json')
